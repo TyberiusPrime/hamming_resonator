@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod encode;
 pub mod error;
 mod index;

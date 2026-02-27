@@ -2,6 +2,11 @@
 name = "hamming-resonate"
 version = "0.1.0"
 edition = "2021"
+description = "Fast nearest-neighbour search over fixed-length DNA sequences using Hamming distance"
+license = "MIT"
+keywords = ["dna", "hamming", "bioinformatics", "sequence", "search"]
+categories = ["science", "data-structures", "algorithms"]
+readme = "README.md"
 
 [lib]
 name = "hamming_resonate"
