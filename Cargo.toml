@@ -1,0 +1,10 @@
+[package]
+name = "hamming_resonator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bstr = "1.12.1"
+hamming-bitwise-fast = "1.0.0"
+rayon = "1.11.0"
+thiserror = "2.0.18"

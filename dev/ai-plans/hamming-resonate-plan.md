@@ -4,11 +4,11 @@
 
 ```rust
 // Unweighted: return all references within max_dist
-let resonator = HammingResonator::new(vec_of_bstrings)?;
+let resonator = HammingResonator::new(vec_of_bstrings, max_dist)?;
 resonator.query(query_bstring) -> Result<Vec<&BStr>, ResonateError>
 
 // Weighted: return the single highest-scoring reference within max_dist
-let resonator = HammingResonatorWeighted::new(vec_of_bstrings_and_scores)?;
+let resonator = HammingResonatorWeighted::new(vec_of_bstrings_and_scores, max_dist)?;
 resonator.query_best(query_bstring) -> Result<Option<&BStr>, ResonateError>
 ```
 
@@ -42,7 +42,6 @@ edition = "2021"
 bstr = "1"
 rayon = "1"
 thiserror = "1"
-bitnuc="1"
 hamming-bitwise-fast = ""
 
 [dev-dependencies]
@@ -301,7 +300,7 @@ Use `criterion`. Two groups:
 
 | Question | Recommendation |
 |---|---|
-| Default `max_dist` | 1 (most common use case; override with `with_max_dist`) |
-| Score type | `f64` for now; consider a generic `T: PartialOrd + Copy` in a follow-up |
-| Alphabet | DNA only (ACGT, case-insensitive); arbitrary bytes would need a different chunking strategy |
+| Default `max_dist` | always take as a parameter. ensure it's small.|
+| Score type | `f64` for now; |
+| Alphabet | DNA only (ACGT, case-insensitive); |
 | Case handling | Normalize to uppercase on encode; do not error on lowercase |
