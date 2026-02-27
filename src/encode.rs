@@ -53,7 +53,7 @@ pub(crate) fn encode(seq: &BStr) -> Result<EncodedSeq, ResonateError> {
 /// Odd-length sequences pad the final low nibble with 0x0; both sides carry the
 /// same padding, so it contributes 0 to the XOR and does not affect the result.
 pub(crate) fn encode_nibble(byte_enc: &EncodedSeq) -> NibbleSeq {
-    let packed_len = (byte_enc.len() + 1) / 2;
+    let packed_len = byte_enc.len().div_ceil(2);
     let mut out = vec![0u8; packed_len];
     for (i, &b) in byte_enc.iter().enumerate() {
         let nibble: u8 = match b {

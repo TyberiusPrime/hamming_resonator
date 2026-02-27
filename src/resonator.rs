@@ -46,6 +46,7 @@ impl HammingResonator {
     }
 
     /// Query the index for a batch of queries in parallel using Rayon.
+    #[must_use] 
     pub fn query_batch<'a>(
         &'a self,
         queries: &[BString],
@@ -54,7 +55,7 @@ impl HammingResonator {
     }
 }
 
-/// Shared validation: checks non-empty, consistent length, valid bases, seq_len >= max_dist + 1.
+/// Shared validation: checks non-empty, consistent length, valid bases, `seq_len` >= `max_dist` + 1.
 /// Returns encoded sequences ready for `PartitionIndex::build`.
 pub(crate) fn validate_and_encode(
     seqs: &[BString],

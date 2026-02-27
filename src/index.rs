@@ -6,7 +6,7 @@ use crate::error::ResonateError;
 pub(crate) struct PartitionIndex {
     /// Full sequences in nibble-packed form for Hamming distance computation.
     encoded_nibble: Vec<NibbleSeq>,
-    /// chunk_maps[i]: byte-per-base chunk slice → list of ref indices.
+    /// `chunk_maps`[i]: byte-per-base chunk slice → list of ref indices.
     /// Keys stay byte-per-base so chunk boundaries map cleanly to slice ranges.
     chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
     /// Byte-per-base coordinate range (start, end) for each chunk.
