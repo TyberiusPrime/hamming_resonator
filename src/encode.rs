@@ -2,9 +2,37 @@ use bstr::BStr;
 use hamming_bitwise_fast::hamming_bitwise_fast;
 use crate::error::ResonateError;
 
+/// Byte-per-base encoded DNA sequence. Values: A=0, C=1, G=2, T=4.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct EncodedSeq(Vec<u8>);
+
+impl std::ops::Deref for EncodedSeq {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] { &self.0 }
+}
+
+impl<const N: usize> PartialEq<[u8; N]> for EncodedSeq {
+    fn eq(&self, other: &[u8; N]) -> bool { self.0.as_slice() == other.as_slice() }
+}
+
+/// Nibble-packed DNA sequence used for fast Hamming distance comparison.
+/// Two bases per byte: even index → high nibble, odd index → low nibble.
+/// One-hot encoding: A=0x1, C=0x2, G=0x4, T=0x8.
+#[derive(Debug, Clone)]
+pub(crate) struct NibbleSeq(Vec<u8>);
+
+impl std::ops::Deref for NibbleSeq {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] { &self.0 }
+}
+
+impl<const N: usize> PartialEq<[u8; N]> for NibbleSeq {
+    fn eq(&self, other: &[u8; N]) -> bool { self.0.as_slice() == other.as_slice() }
+}
+
 /// Encode a DNA sequence (case-insensitive ACGT) into one byte per base.
 /// A→0, C→1, G→2, T→4. Normalises to uppercase before mapping.
-pub(crate) fn encode(seq: &BStr) -> Result<Vec<u8>, ResonateError> {
+pub(crate) fn encode(seq: &BStr) -> Result<EncodedSeq, ResonateError> {
     seq.iter()
         .enumerate()
         .map(|(i, &b)| match b | 0x20 {
@@ -14,17 +42,17 @@ pub(crate) fn encode(seq: &BStr) -> Result<Vec<u8>, ResonateError> {
             b't' => Ok(4u8),
             _ => Err(ResonateError::InvalidBase(b as char, i)),
         })
-        .collect()
+        .collect::<Result<Vec<u8>, _>>()
+        .map(EncodedSeq)
 }
 
-/// Pack a byte-per-base slice into nibble form: 2 bases per byte.
+/// Pack a byte-per-base `EncodedSeq` into nibble form: 2 bases per byte.
 /// Even index → high nibble (bits 7:4), odd index → low nibble (bits 3:0).
-/// One-hot nibble values: A=0x1, C=0x2, G=0x4, T=0x8.
 /// Any two distinct bases XOR to exactly 2 set bits, so
 /// `hamming_bitwise_fast(a, b) / 2` gives the correct base-level distance.
 /// Odd-length sequences pad the final low nibble with 0x0; both sides carry the
 /// same padding, so it contributes 0 to the XOR and does not affect the result.
-pub(crate) fn encode_nibble(byte_enc: &[u8]) -> Vec<u8> {
+pub(crate) fn encode_nibble(byte_enc: &EncodedSeq) -> NibbleSeq {
     let packed_len = (byte_enc.len() + 1) / 2;
     let mut out = vec![0u8; packed_len];
     for (i, &b) in byte_enc.iter().enumerate() {
@@ -41,12 +69,12 @@ pub(crate) fn encode_nibble(byte_enc: &[u8]) -> Vec<u8> {
             out[i / 2] |= nibble;
         }
     }
-    out
+    NibbleSeq(out)
 }
 
-/// Count differing base positions between two equal-length nibble-packed slices.
+/// Count differing base positions between two equal-length nibble-packed sequences.
 #[inline]
-pub(crate) fn hamming_nibble(a: &[u8], b: &[u8]) -> u32 {
+pub(crate) fn hamming_nibble(a: &NibbleSeq, b: &NibbleSeq) -> u32 {
     hamming_bitwise_fast(a, b) / 2
 }
 
@@ -58,13 +86,13 @@ mod tests {
     #[test]
     fn encode_uppercase() {
         let enc = encode("ACGT".as_bytes().as_bstr()).unwrap();
-        assert_eq!(enc, [0, 1, 2, 4]);
+        assert_eq!(enc, [0u8, 1, 2, 4]);
     }
 
     #[test]
     fn encode_lowercase() {
         let enc = encode("acgt".as_bytes().as_bstr()).unwrap();
-        assert_eq!(enc, [0, 1, 2, 4]);
+        assert_eq!(enc, [0u8, 1, 2, 4]);
     }
 
     #[test]

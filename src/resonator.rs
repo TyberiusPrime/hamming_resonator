@@ -1,7 +1,7 @@
 use bstr::{BStr, BString, ByteSlice};
 use rayon::prelude::*;
 
-use crate::encode::encode;
+use crate::encode::{EncodedSeq, encode};
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
 
@@ -59,7 +59,7 @@ impl HammingResonator {
 pub(crate) fn validate_and_encode(
     seqs: &[BString],
     max_dist: u32,
-) -> Result<Vec<Vec<u8>>, ResonateError> {
+) -> Result<Vec<EncodedSeq>, ResonateError> {
     if seqs.is_empty() {
         return Err(ResonateError::EmptyInput);
     }

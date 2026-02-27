@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use crate::encode::{encode_nibble, hamming_nibble};
+use crate::encode::{EncodedSeq, NibbleSeq, encode_nibble, hamming_nibble};
 use crate::error::ResonateError;
 
 #[derive(Debug)]
 pub(crate) struct PartitionIndex {
     /// Full sequences in nibble-packed form for Hamming distance computation.
-    encoded_nibble: Vec<Vec<u8>>,
+    encoded_nibble: Vec<NibbleSeq>,
     /// chunk_maps[i]: byte-per-base chunk slice → list of ref indices.
     /// Keys stay byte-per-base so chunk boundaries map cleanly to slice ranges.
     chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
@@ -18,7 +18,7 @@ pub(crate) struct PartitionIndex {
 impl PartitionIndex {
     /// Build from byte-per-base encoded sequences.
     pub(crate) fn build(
-        encoded: Vec<Vec<u8>>,
+        encoded: Vec<EncodedSeq>,
         max_dist: u32,
     ) -> Result<Self, ResonateError> {
         let seq_len = encoded[0].len();
@@ -51,7 +51,7 @@ impl PartitionIndex {
     }
 
     /// Return indices of all references within `max_dist` of `enc` (byte-per-base).
-    pub(crate) fn query_indices(&self, enc: &[u8]) -> Vec<u32> {
+    pub(crate) fn query_indices(&self, enc: &EncodedSeq) -> Vec<u32> {
         // Nibble-pack the query once; reused for every candidate distance check.
         let enc_nibble = encode_nibble(enc);
 
@@ -76,15 +76,15 @@ impl PartitionIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::encode::encode;
+    use crate::encode::{EncodedSeq, encode};
     use bstr::ByteSlice;
 
-    fn enc(s: &str) -> Vec<u8> {
+    fn enc(s: &str) -> EncodedSeq {
         encode(s.as_bytes().as_bstr()).unwrap()
     }
 
     fn build(seqs: &[&str], max_dist: u32) -> PartitionIndex {
-        let encoded: Vec<Vec<u8>> = seqs.iter().map(|s| enc(s)).collect();
+        let encoded: Vec<EncodedSeq> = seqs.iter().map(|s| enc(s)).collect();
         PartitionIndex::build(encoded, max_dist).unwrap()
     }
 
