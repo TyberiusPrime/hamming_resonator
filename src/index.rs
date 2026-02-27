@@ -1,20 +1,22 @@
 use std::collections::HashMap;
-use crate::encode::hamming;
+use crate::encode::{encode_nibble, hamming_nibble};
 use crate::error::ResonateError;
 
 #[derive(Debug)]
 pub(crate) struct PartitionIndex {
-    /// Encoded reference sequences (one byte per base).
-    encoded: Vec<Vec<u8>>,
-    /// chunk_maps[i]: chunk_bytes → list of ref indices
+    /// Full sequences in nibble-packed form for Hamming distance computation.
+    encoded_nibble: Vec<Vec<u8>>,
+    /// chunk_maps[i]: byte-per-base chunk slice → list of ref indices.
+    /// Keys stay byte-per-base so chunk boundaries map cleanly to slice ranges.
     chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
-    /// Byte range (start, end) for each chunk position.
+    /// Byte-per-base coordinate range (start, end) for each chunk.
     ranges: Vec<(usize, usize)>,
     pub(crate) seq_len: usize,
     pub(crate) max_dist: u32,
 }
 
 impl PartitionIndex {
+    /// Build from byte-per-base encoded sequences.
     pub(crate) fn build(
         encoded: Vec<Vec<u8>>,
         max_dist: u32,
@@ -33,6 +35,8 @@ impl PartitionIndex {
         let mut chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>> =
             (0..n_chunks).map(|_| HashMap::new()).collect();
 
+        let mut encoded_nibble = Vec::with_capacity(encoded.len());
+
         for (idx, enc) in encoded.iter().enumerate() {
             for (chunk_i, &(start, end)) in ranges.iter().enumerate() {
                 chunk_maps[chunk_i]
@@ -40,15 +44,18 @@ impl PartitionIndex {
                     .or_default()
                     .push(idx as u32);
             }
+            encoded_nibble.push(encode_nibble(enc));
         }
 
-        Ok(Self { encoded, chunk_maps, ranges, seq_len, max_dist })
+        Ok(Self { encoded_nibble, chunk_maps, ranges, seq_len, max_dist })
     }
 
-    /// Return indices of all references within `max_dist` of `enc`.
+    /// Return indices of all references within `max_dist` of `enc` (byte-per-base).
     pub(crate) fn query_indices(&self, enc: &[u8]) -> Vec<u32> {
-        let mut candidates: Vec<u32> = Vec::new();
+        // Nibble-pack the query once; reused for every candidate distance check.
+        let enc_nibble = encode_nibble(enc);
 
+        let mut candidates: Vec<u32> = Vec::new();
         for (chunk_i, &(start, end)) in self.ranges.iter().enumerate() {
             if let Some(hits) = self.chunk_maps[chunk_i].get(&enc[start..end]) {
                 candidates.extend_from_slice(hits);
@@ -59,7 +66,7 @@ impl PartitionIndex {
         candidates.dedup();
 
         candidates.retain(|&idx| {
-            hamming(enc, &self.encoded[idx as usize]) <= self.max_dist
+            hamming_nibble(&enc_nibble, &self.encoded_nibble[idx as usize]) <= self.max_dist
         });
 
         candidates
@@ -108,7 +115,6 @@ mod tests {
 
     #[test]
     fn dedup_candidates() {
-        // When multiple chunks point to the same ref, it should appear once.
         let idx = build(&["AAAA"], 1);
         let q = enc("AAAA");
         let hits = idx.query_indices(&q);
