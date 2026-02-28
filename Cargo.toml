@@ -7,6 +7,7 @@ license = "MIT"
 keywords = ["dna", "hamming", "bioinformatics", "sequence", "search"]
 categories = ["science", "data-structures", "algorithms"]
 readme = "README.md"
+repository = "https://github.com/TyberiusPrime/hamming_resonator"
 
 [lib]
 name = "hamming_resonate"
