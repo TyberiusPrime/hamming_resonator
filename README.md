@@ -41,8 +41,9 @@ use hamming_resonate::{HammingResonatorWeighted, ResonateError};
 
 fn main() -> Result<(), ResonateError> {
     let refs: Vec<(BString, f64)> = vec![
-        (BString::from("AAAA"), 1.0),
-        (BString::from("AAAC"), 9.0),
+//        (BString::from("AAAA"), 1.0),
+        (BString::from("AAAT"), 9.0),
+        (BString::from("AAAG"), 5.0),
     ];
 
     let index = HammingResonatorWeighted::with_max_dist(refs, 1)?;
@@ -50,7 +51,8 @@ fn main() -> Result<(), ResonateError> {
     // Both "AAAA" (d=0) and "AAAC" (d=1) are within distance 1 of "AAAA",
     // but "AAAC" has a higher score so it wins.
     let best = index.query_best("AAAA".as_bytes().as_bstr())?;
-    assert_eq!(best.unwrap(), "AAAC".as_bytes().as_bstr());
+    assert_eq!(best.unwrap(), "AAAT".as_bytes().as_bstr());
+
     Ok(())
 }
 ```

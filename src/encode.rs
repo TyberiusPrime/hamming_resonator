@@ -1,20 +1,29 @@
+use crate::error::ResonateError;
 use bstr::BStr;
 use hamming_bitwise_fast::hamming_bitwise_fast;
-use crate::error::ResonateError;
 
 /// Byte-per-base encoded DNA sequence. Values: A=0, C=1, G=2, T=4.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct EncodedSeq(Vec<u8>);
+pub(crate) struct EncodedSeq(pub(crate) Vec<u8>);
 
 impl std::ops::Deref for EncodedSeq {
     type Target = [u8];
-    fn deref(&self) -> &[u8] { &self.0 }
+    fn deref(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl<const N: usize> PartialEq<[u8; N]> for EncodedSeq {
-    fn eq(&self, other: &[u8; N]) -> bool { self.0.as_slice() == other.as_slice() }
+    fn eq(&self, other: &[u8; N]) -> bool {
+        self.0 == other.as_slice()
+    }
 }
-
+/// Count the number of differing base positions between two equal-length encoded slices.
+#[inline]
+pub(crate) fn hamming(a: &[u8], b: &[u8]) -> u32 {
+    debug_assert_eq!(a.len(), b.len());
+    a.iter().zip(b.iter()).map(|(x, y)| (x != y) as u32).sum()
+}
 /// Nibble-packed DNA sequence used for fast Hamming distance comparison.
 /// Two bases per byte: even index → high nibble, odd index → low nibble.
 /// One-hot encoding: A=0x1, C=0x2, G=0x4, T=0x8.
@@ -23,27 +32,31 @@ pub(crate) struct NibbleSeq(Vec<u8>);
 
 impl std::ops::Deref for NibbleSeq {
     type Target = [u8];
-    fn deref(&self) -> &[u8] { &self.0 }
+    fn deref(&self) -> &[u8] {
+        &self.0
+    }
 }
 
 impl<const N: usize> PartialEq<[u8; N]> for NibbleSeq {
-    fn eq(&self, other: &[u8; N]) -> bool { self.0.as_slice() == other.as_slice() }
+    fn eq(&self, other: &[u8; N]) -> bool {
+        self.0.as_slice() == other.as_slice()
+    }
 }
 
 /// Encode a DNA sequence (case-insensitive ACGT) into one byte per base.
 /// A→0, C→1, G→2, T→4. Normalises to uppercase before mapping.
 pub(crate) fn encode(seq: &BStr) -> Result<EncodedSeq, ResonateError> {
-    seq.iter()
-        .enumerate()
-        .map(|(i, &b)| match b | 0x20 {
-            b'a' => Ok(0u8),
-            b'c' => Ok(1u8),
-            b'g' => Ok(2u8),
-            b't' => Ok(4u8),
-            _ => Err(ResonateError::InvalidBase(b as char, i)),
-        })
-        .collect::<Result<Vec<u8>, _>>()
-        .map(EncodedSeq)
+    let mut data = vec![0u8; seq.len()];
+    for (i, &b) in seq.iter().enumerate() {
+        data[i] = match b | 0x20 {
+            b'a' => 0u8,
+            b'c' => 1u8,
+            b'g' => 2u8,
+            b't' => 4u8,
+            _ => return Err(ResonateError::InvalidBase(b as char, i)),
+        };
+    }
+    Ok(EncodedSeq(data))
 }
 
 /// Pack a byte-per-base `EncodedSeq` into nibble form: 2 bases per byte.

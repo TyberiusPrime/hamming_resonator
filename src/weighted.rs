@@ -3,7 +3,7 @@ use bstr::{BStr, BString};
 use crate::encode::encode;
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
-use crate::resonator::validate_and_encode;
+use crate::resonator::{validate_and_encode, validate_and_encode_with_scores, EncodedSeqs};
 
 /// An index for finding the highest-scoring reference sequence within a given
 /// Hamming distance of a query sequence.
@@ -25,14 +25,15 @@ pub struct HammingResonatorWeighted {
 
 impl HammingResonatorWeighted {
     /// Build with explicit `max_dist`.
-    pub fn with_max_dist(
-        seqs: Vec<(BString, f64)>,
-        max_dist: u32,
-    ) -> Result<Self, ResonateError> {
+    pub fn with_max_dist(seqs: Vec<(BString, f64)>, max_dist: u32) -> Result<Self, ResonateError> {
         let (bstrings, scores): (Vec<BString>, Vec<f64>) = seqs.into_iter().unzip();
-        let encoded = validate_and_encode(&bstrings, max_dist)?;
+        let encoded = validate_and_encode_with_scores(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
-        Ok(Self { originals: bstrings, scores, index })
+        Ok(Self {
+            originals: bstrings,
+            scores,
+            index,
+        })
     }
 
     /// Return the highest-scoring reference within `max_dist`, or `None` if no match is found.
@@ -48,15 +49,17 @@ impl HammingResonatorWeighted {
         let indices = self.index.query_indices(&enc);
         // query_indices returns sorted indices, so the first occurrence of the
         // maximum score wins the tie-break (lowest original index).
-        let best = indices.into_iter().reduce(|best, idx| {
-            if self.scores[idx as usize] > self.scores[best as usize] {
-                idx
+        let best = indices.into_iter().reduce(|best, (idx, d)| {
+            if d < best.1
+                || (d == best.1 && self.scores[idx as usize] > self.scores[best.0 as usize])
+            {
+                (idx, d)
             } else {
                 best
             }
         });
 
-        Ok(best.map(|i| {
+        Ok(best.map(|(i, _d)| {
             let s: &BStr = self.originals[i as usize].as_ref();
             s
         }))
@@ -82,7 +85,7 @@ mod tests {
         let r = weighted(&[("AAAA", 1.0), ("AAAC", 5.0), ("AACC", 10.0)], 1);
         // AACC is d=2 from AAAA, excluded; AAAC is d=1 and highest among candidates
         let hit = r.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-        assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+        assert_eq!(hit, "AAAA".as_bytes().as_bstr());
     }
 
     #[test]

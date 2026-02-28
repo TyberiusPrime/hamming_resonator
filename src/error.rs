@@ -17,4 +17,7 @@ pub enum ResonateError {
 
     #[error("Duplicate entries in reference set")]
     DuplicateEntries,
+
+    #[error("Seqs and scores had differing lengths")] // todo refactor out to be impossible
+    LengthMismatch ,
 }
