@@ -103,7 +103,7 @@ impl HammingResonatorWeighted {
         }
         let best = Self::query_indices_fast(&self.index, query);
 
-        Ok(best.map(|(i, _d, _score)| BStr::new(self.index.encoded.get_entry(i as u32).0)))
+        Ok(best.map(|(i, _d, _score)| BStr::new(self.index.encoded.get_entry(i).0)))
     }
 }
 

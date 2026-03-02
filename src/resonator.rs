@@ -42,7 +42,7 @@ impl HammingResonator {
         let indices = self.index.query_indices(query.as_bstr());
         Ok(indices
             .into_iter()
-            .map(|(i, d, _ignored_score)| (BStr::new(self.index.encoded.get_entry(i as u32).0), d))
+            .map(|(i, d, _ignored_score)| (BStr::new(self.index.encoded.get_entry(i).0), d))
             .collect())
     }
 
