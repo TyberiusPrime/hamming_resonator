@@ -1,8 +1,5 @@
 use bstr::{BStr, BString, ByteSlice};
-use hamming_resonate::{
-    HammingResonator, //HammingResonatorWeighted,
-    ResonateError,
-};
+use hamming_resonate::{HammingResonator, HammingResonatorWeighted, ResonateError};
 
 fn b(s: &str) -> BString {
     BString::from(s)
@@ -13,10 +10,10 @@ fn resonator(seqs: &[&str], max_dist: u32) -> HammingResonator {
     HammingResonator::with_max_dist(v, max_dist).unwrap()
 }
 
-// fn weighted(seqs: &[(&str, f64)], max_dist: u32) -> HammingResonatorWeighted {
-//     let v: Vec<(BString, f64)> = seqs.iter().map(|&(s, w)| (b(s), w)).collect();
-//     HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
-// }
+fn weighted(seqs: &[(&str, f64)], max_dist: u32) -> HammingResonatorWeighted {
+    let v: Vec<(BString, f64)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
+    HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
+}
 
 fn hit_strings(hits: Vec<(&BStr, u32)>) -> Vec<String> {
     let mut v: Vec<String> = hits
@@ -58,7 +55,6 @@ fn t03_d2_and_d3_at_correct_max_dist() {
     assert!(hits.contains(&"ACCC".to_owned())); // d=3
 }
 
-
 // Test 7: Mismatched query length → Err(QueryLengthMismatch)
 #[test]
 fn t07_query_length_mismatch() {
@@ -73,14 +69,52 @@ fn t07_query_length_mismatch() {
     ));
 }
 
-// Test 8: query_best returns highest-score match, not just first or closest
-// #[test]
-// fn t08_query_best_highest_score() {
-//     // AAAC is d=1 (score 5.0), AAAA is d=0 (score 1.0); best should be AAAC
-//     let w = weighted(&[("AAAA", 1.0), ("AAAC", 5.0)], 1);
-//     let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-//     assert_eq!(hit, "AAAC".as_bytes().as_bstr());
-// }
+// Test 8: query_best returns highest-score match on ties
+#[test]
+fn t08_query_best_distance_first() {
+    // AAAC is d=1 (score 5.0), AAAA is d=0 (score 1.0); best should be AAAA
+    let w = weighted(&[("AAAA", 1.0), ("AAAC", 5.0)], 1);
+    let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
+    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+
+    for i in b' '..255 {
+        if i == b'A' {
+            continue
+        }
+        let mut query = BString::from("AAA");
+        query.push(i);
+        let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
+        assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+    }
+}
+//
+// Test 8: query_best returns highest-score match on ties
+#[test]
+fn t09_query_best_distance_first() {
+    // AAAC is d=1 (score 5.0), AAAA is d=0 (score 1.0); best should be AAAA
+    let w = weighted(&[("AAAA", 1.0), ("AAAC", 5.0), ("TAAA", 6.0)], 2);
+    let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
+    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+
+    for i in b' '..255 {
+        if i == b'A' {
+            continue
+        }
+        let mut query = BString::from("AAA");
+        query.push(i);
+        let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
+        assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+    }
+    for i in b' '..255 {
+        if i == b'A' {
+            continue
+        }
+        let mut query = BString::from("TAA");
+        query.push(i);
+        let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
+        assert_eq!(hit, "TAAA".as_bytes().as_bstr());
+    }
+}
 
 // Test 9: query_best tie-break: lowest index wins
 // #[test]

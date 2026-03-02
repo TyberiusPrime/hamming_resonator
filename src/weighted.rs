@@ -69,12 +69,10 @@ mod tests {
     use super::*;
     use bstr::ByteSlice;
 
-    fn bstr(s: &str) -> BString {
-        BString::from(s)
-    }
+    
 
     fn weighted(seqs: &[(&str, f64)], max_dist: u32) -> HammingResonatorWeighted {
-        let v: Vec<(BString, f64)> = seqs.iter().map(|&(s, w)| (bstr(s), w)).collect();
+        let v: Vec<(BString, f64)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
         HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
     }
 
