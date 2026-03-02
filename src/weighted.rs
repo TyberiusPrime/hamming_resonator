@@ -1,6 +1,6 @@
 use bstr::{BStr, BString};
 
-use crate::encode::EncodedSeqs;
+use crate::encode::{EncodedSeqsAndScores};
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
 
@@ -18,19 +18,17 @@ use crate::index::PartitionIndex;
 #[derive(Debug)]
 pub struct HammingResonatorWeighted {
     originals: Vec<BString>,
-    scores: Vec<f64>,
-    index: PartitionIndex,
+    index: PartitionIndex<EncodedSeqsAndScores>,
 }
 
 impl HammingResonatorWeighted {
     /// Build with explicit `max_dist`.
     pub fn with_max_dist(seqs: Vec<(BString, f64)>, max_dist: u32) -> Result<Self, ResonateError> {
         let (bstrings, scores): (Vec<BString>, Vec<f64>) = seqs.into_iter().unzip();
-        let encoded = EncodedSeqs::new_with_scores(&bstrings, &scores, max_dist)?;
+        let encoded = EncodedSeqsAndScores::new(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
             originals: bstrings,
-            scores,
             index,
         })
     }
@@ -47,17 +45,18 @@ impl HammingResonatorWeighted {
         let indices = self.index.query_indices(query);
         // query_indices returns sorted indices, so the first occurrence of the
         // maximum score wins the tie-break (lowest original index).
-        let best = indices.into_iter().reduce(|best, (idx, d)| {
+        // followed by lowest index
+        let best = indices.into_iter().reduce(|best, (idx, d, score)| {
             if d < best.1
-                || (d == best.1 && self.scores[idx as usize] > self.scores[best.0 as usize])
+                || (d == best.1 && score > best.2)
             {
-                (idx, d)
+                (idx, d, score)
             } else {
                 best
             }
         });
 
-        Ok(best.map(|(i, _d)| {
+        Ok(best.map(|(i, _d, _score)| {
             let s: &BStr = self.originals[i as usize].as_ref();
             s
         }))

@@ -18,7 +18,7 @@ use crate::index::PartitionIndex;
 #[derive(Debug)]
 pub struct HammingResonator {
     originals: Vec<BString>,
-    index: PartitionIndex,
+    index: PartitionIndex<EncodedSeqs>,
 }
 
 impl HammingResonator {
@@ -44,7 +44,7 @@ impl HammingResonator {
         let indices = self.index.query_indices(query.as_bstr());
         Ok(indices
             .into_iter()
-            .map(|(i, d)| (self.originals[i as usize].as_bstr(), d))
+            .map(|(i, d, _ignored_score)| (self.originals[i as usize].as_bstr(), d))
             .collect())
     }
 

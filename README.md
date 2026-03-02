@@ -1,16 +1,23 @@
 # hamming-resonate
 
-Fast nearest-neighbour search over fixed-length DNA sequences using Hamming distance.
+Fast nearest-neighbors search over fixed-length byte sequences using Hamming distance.
+
+For DNA usage.
 
 Build an index from a set of reference sequences, then query it to find all
 references within a given number of mismatches.  Two flavours are provided:
 
 - **`HammingResonator`** — returns every reference within `max_dist`.
-- **`HammingResonatorWeighted`** — returns the single highest-scoring reference
-  within `max_dist`, with lowest-index tie-breaking.
+- **`HammingResonatorWeighted`** — returns the single best sequence
+within `max_dist`. On distance ties, highest score wins.
+On score ties,  lowest-index (=alphabetically first) wins.
 
-Sequences are ASCII strings over `{A, C, G, T}` (case-insensitive).  All
-sequences in one index must be the same length.
+Sequences are bytew strings. Comparisons are case sensitive.
+All sequences in one index must be the same length. Query must also have the same length.
+
+
+Tests have only been performed up to `max_dist` = 3.
+
 
 ## Quick start
 
@@ -120,13 +127,6 @@ exactly.  Lookup therefore:
 1. Collects candidate indices by matching each query chunk against a per-chunk
    `HashMap`.
 2. Deduplicates and verifies each candidate with an exact Hamming distance check.
-
-Distance checks use a **nibble-packed** representation: each base occupies one
-nibble with a one-hot encoding (`A=0x1`, `C=0x2`, `G=0x4`, `T=0x8`).  Any two
-distinct bases XOR to exactly 2 set bits, so
-`popcount(a XOR b) / 2` gives the base-level Hamming distance, computed by
-[`hamming-bitwise-fast`](https://docs.rs/hamming-bitwise-fast) using SIMD
-population-count intrinsics where available.
 
 ## License
 
