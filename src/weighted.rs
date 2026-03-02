@@ -1,9 +1,8 @@
 use bstr::{BStr, BString};
 
-use crate::encode::encode;
+use crate::encode::EncodedSeqs;
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
-use crate::encode::validate_and_encode_with_scores;
 
 /// An index for finding the highest-scoring reference sequence within a given
 /// Hamming distance of a query sequence.
@@ -27,7 +26,7 @@ impl HammingResonatorWeighted {
     /// Build with explicit `max_dist`.
     pub fn with_max_dist(seqs: Vec<(BString, f64)>, max_dist: u32) -> Result<Self, ResonateError> {
         let (bstrings, scores): (Vec<BString>, Vec<f64>) = seqs.into_iter().unzip();
-        let encoded = validate_and_encode_with_scores(&bstrings, &scores, max_dist)?;
+        let encoded = EncodedSeqs::new_with_scores(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
             originals: bstrings,
@@ -38,15 +37,14 @@ impl HammingResonatorWeighted {
 
     /// Return the highest-scoring reference within `max_dist`, or `None` if no match is found.
     pub fn query_best(&self, query: &BStr) -> Result<Option<&BStr>, ResonateError> {
-        let enc = encode(query)?;
-        if enc.len() != self.index.seq_len {
+        if query.len() != self.index.seq_len {
             return Err(ResonateError::QueryLengthMismatch {
-                got: enc.len(),
+                got: query.len(),
                 expected: self.index.seq_len,
             });
         }
 
-        let indices = self.index.query_indices(&enc);
+        let indices = self.index.query_indices(query);
         // query_indices returns sorted indices, so the first occurrence of the
         // maximum score wins the tie-break (lowest original index).
         let best = indices.into_iter().reduce(|best, (idx, d)| {
@@ -91,7 +89,10 @@ mod tests {
     #[test]
     fn tie_break_lowest_index() {
         let r = weighted(&[("AAAA", 5.0), ("AAAC", 5.0)], 1);
-        let hit = r.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
+        let hit = r
+            .query_best("AAAA".into())
+            .expect("query failed")
+            .expect("No result");
         // Both have score 5.0; index 0 wins
         assert_eq!(hit, "AAAA".as_bytes().as_bstr());
     }
@@ -101,12 +102,5 @@ mod tests {
         let r = weighted(&[("GGGG", 1.0)], 1);
         let hit = r.query_best("AAAA".as_bytes().as_bstr()).unwrap();
         assert!(hit.is_none());
-    }
-
-    #[test]
-    fn invalid_base_in_query() {
-        let r = weighted(&[("ACGT", 1.0)], 1);
-        let err = r.query_best("ACGN".as_bytes().as_bstr()).unwrap_err();
-        assert!(matches!(err, ResonateError::InvalidBase('N', 3)));
     }
 }

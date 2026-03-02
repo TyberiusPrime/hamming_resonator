@@ -1,13 +1,14 @@
-use crate::encode::{hamming_distance, EncodedSeq};
-use crate::error::ResonateError;
+use bstr::BStr;
+
 use crate::encode::EncodedSeqs;
+use crate::encode::{hamming_distance};
+use crate::error::ResonateError;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct PartitionIndex {
-    /// Full sequences in nibble-packed form for Hamming distance computation.
+    /// Full sequences (and possibly scores) in form for Hamming distance computation.
     encoded: EncodedSeqs,
-    /// `chunk_maps`[i]: byte-per-base chunk slice → list of ref indices.
     /// Keys stay byte-per-base so chunk boundaries map cleanly to slice ranges.
     chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
     /// Byte-per-base coordinate range (start, end) for each chunk.
@@ -18,6 +19,7 @@ pub(crate) struct PartitionIndex {
 
 impl PartitionIndex {
     /// Build from byte-per-base encoded sequences.
+    /// That is ascii...
     pub(crate) fn build(encoded: EncodedSeqs, max_dist: u32) -> Result<Self, ResonateError> {
         let seq_len = encoded.entry_len;
         let n_chunks = (max_dist + 1) as usize;
@@ -52,12 +54,12 @@ impl PartitionIndex {
     }
 
     /// Return indices and distance of all references within `max_dist` of `enc` (byte-per-base).
-    pub(crate) fn query_indices(&self, enc: &EncodedSeq) -> Vec<(u32, u32)> {
+    pub(crate) fn query_indices(&self, query: &BStr) -> Vec<(u32, u32)> {
         // Nibble-pack the query once; reused for every candidate distance check.
 
         let mut candidates: Vec<u32> = Vec::new();
         for (chunk_i, &(start, end)) in self.ranges.iter().enumerate() {
-            if let Some(hits) = self.chunk_maps[chunk_i].get(&enc[start..end]) {
+            if let Some(hits) = self.chunk_maps[chunk_i].get(&query[start..end]) {
                 candidates.extend_from_slice(hits);
             }
         }
@@ -69,7 +71,7 @@ impl PartitionIndex {
             .into_iter()
             .map(|idx| {
                 let slice = self.encoded.get_entry(idx);
-                (idx, hamming_distance(enc, slice))
+                (idx, hamming_distance(query, slice))
             })
             .collect();
         candidates.retain(|(_idx, dist)| *dist <= self.max_dist);
@@ -81,49 +83,45 @@ impl PartitionIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{encode::encode, encode::validate_and_encode};
-    use bstr::{BString, ByteSlice};
-
-    fn enc(s: &str) -> EncodedSeq {
-        encode(s.as_bytes().as_bstr()).unwrap()
-    }
+    use crate::encode::EncodedSeqs;
+    use bstr::BString;
 
     fn build(seqs: &[&str], max_dist: u32) -> PartitionIndex {
         let bstr_seqs: Vec<BString> = seqs.iter().map(|&s| BString::from(s)).collect();
-        let encoded: EncodedSeqs = validate_and_encode(&bstr_seqs, max_dist).unwrap();
+        let encoded = EncodedSeqs::new(&bstr_seqs, max_dist).unwrap();
         PartitionIndex::build(encoded, max_dist).unwrap()
     }
 
     #[test]
     fn exact_match_always_returned() {
         let idx = build(&["ACGT", "TTTT"], 1);
-        let q = enc("ACGT");
-        let hits = idx.query_indices(&q);
-        assert!(hits.contains(&(0,0)));
+        let q = "ACGT".into();
+        let hits = idx.query_indices(q);
+        assert!(hits.contains(&(0, 0)));
     }
 
     #[test]
     fn d1_found_d2_not() {
         let idx = build(&["AAAA", "AAAC", "AACC"], 1);
-        let q = enc("AAAA");
-        let hits = idx.query_indices(&q);
-        assert!(hits.contains(&(0,0)));
-        assert!(hits.contains(&(1,1)));
-        assert!(!hits.contains(&(2,2)));
+        let q = "AAAA".into();
+        let hits = idx.query_indices(q);
+        assert!(hits.contains(&(0, 0)));
+        assert!(hits.contains(&(1, 1)));
+        assert!(!hits.contains(&(2, 2)));
     }
 
     #[test]
     fn no_matches_returns_empty() {
         let idx = build(&["GGGG", "CCCC"], 1);
-        let q = enc("AAAA");
-        assert!(idx.query_indices(&q).is_empty());
+        let q = "AAAA".into();
+        assert!(idx.query_indices(q).is_empty());
     }
 
     #[test]
     fn dedup_candidates() {
         let idx = build(&["AAAA"], 1);
-        let q = enc("AAAA");
-        let hits = idx.query_indices(&q);
-        assert_eq!(hits, vec![(0,0)]);
+        let q = "AAAA".into();
+        let hits = idx.query_indices(q);
+        assert_eq!(hits, vec![(0, 0)]);
     }
 }

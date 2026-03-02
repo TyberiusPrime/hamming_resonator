@@ -1,7 +1,7 @@
 use bstr::{BStr, BString, ByteSlice};
 use rayon::prelude::*;
 
-use crate::encode::{encode, validate_and_encode};
+use crate::encode::EncodedSeqs;
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
 
@@ -24,7 +24,7 @@ pub struct HammingResonator {
 impl HammingResonator {
     /// Build with explicit `max_dist`.
     pub fn with_max_dist(seqs: Vec<BString>, max_dist: u32) -> Result<Self, ResonateError> {
-        let encoded = validate_and_encode(&seqs, max_dist)?;
+        let encoded = EncodedSeqs::new(&seqs, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
             originals: seqs,
@@ -34,14 +34,14 @@ impl HammingResonator {
 
     /// Query the index and return all references within `max_dist`, and their distanc.
     pub fn query(&self, query: &BStr) -> Result<Vec<(&BStr, u32)>, ResonateError> {
-        let enc = encode(query)?;
-        if enc.len() != self.index.seq_len {
+        if query.len() != self.index.seq_len {
             return Err(ResonateError::QueryLengthMismatch {
-                got: enc.len(),
+                got: query.len(),
                 expected: self.index.seq_len,
             });
         }
-        let indices = self.index.query_indices(&enc);
+        let query = BString::from(query.to_ascii_uppercase());
+        let indices = self.index.query_indices(query.as_bstr());
         Ok(indices
             .into_iter()
             .map(|(i, d)| (self.originals[i as usize].as_bstr(), d))
@@ -100,13 +100,6 @@ mod tests {
         let r = resonator(&["GGGG"], 1);
         let hits = r.query("AAAA".as_bytes().as_bstr()).unwrap();
         assert!(hits.is_empty());
-    }
-
-    #[test]
-    fn invalid_base_in_query() {
-        let r = resonator(&["ACGT"], 1);
-        let err = r.query("ACGN".as_bytes().as_bstr()).unwrap_err();
-        assert!(matches!(err, ResonateError::InvalidBase('N', 3)));
     }
 
     #[test]
