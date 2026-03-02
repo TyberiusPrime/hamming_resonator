@@ -24,6 +24,17 @@ Tests have only been performed up to `max_dist` = 3.
 
 Database size is at most 2^32 sequences.
 
+## Performance
+
+There are benchmarks you can run with `cargo bench`.
+
+1 million references, max distance of 1, querying 10k in serial 
+is taking about 3.2 ms on my machine. Call it about 3 million queries/second.
+
+Increasing the distance to two, performance drops significantly to 83 ms
+for 10k queries.
+
+
 
 ## Quick start
 
