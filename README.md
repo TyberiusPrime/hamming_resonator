@@ -88,6 +88,13 @@ fn main() -> Result<(), ResonateError> {
 }
 ```
 
+
+## Performance notes
+
+Sorting your references sequences gives about a 7-10% speed boost in query performance.
+
+But since it increases the build time substantially, it's not on by default.
+
 ## API
 
 ### `HammingResonator`
