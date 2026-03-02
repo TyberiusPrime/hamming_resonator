@@ -1,6 +1,8 @@
 use bstr::{BStr, BString, ByteSlice};
-use hamming_resonate::{HammingResonator, //HammingResonatorWeighted,
-ResonateError};
+use hamming_resonate::{
+    HammingResonator, //HammingResonatorWeighted,
+    ResonateError,
+};
 
 fn b(s: &str) -> BString {
     BString::from(s)
@@ -16,8 +18,11 @@ fn resonator(seqs: &[&str], max_dist: u32) -> HammingResonator {
 //     HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
 // }
 
-fn hit_strings(hits: Vec<&BStr>) -> Vec<String> {
-    let mut v: Vec<String> = hits.iter().map(|s| s.to_str().unwrap().to_owned()).collect();
+fn hit_strings(hits: Vec<(&BStr, u32)>) -> Vec<String> {
+    let mut v: Vec<String> = hits
+        .iter()
+        .map(|(s, _d)| s.to_str().unwrap().to_owned())
+        .collect();
     v.sort();
     v
 }
@@ -27,7 +32,10 @@ fn hit_strings(hits: Vec<&BStr>) -> Vec<String> {
 fn t01_exact_match_always_returned() {
     let r = resonator(&["ACGT", "TTTT", "GGGG"], 2);
     let hits = r.query("ACGT".as_bytes().as_bstr()).unwrap();
-    assert!(hits.contains(&"ACGT".as_bytes().as_bstr()));
+    assert!(hits
+        .iter()
+        .map(|(seq, _d)| seq)
+        .any(|x| x == &"ACGT".as_bytes().as_bstr()));
 }
 
 // Test 2: d=1 match found; d=2 sequence not returned at max_dist=1
@@ -83,7 +91,10 @@ fn t07_query_length_mismatch() {
     let err = r.query("ACG".as_bytes().as_bstr()).unwrap_err();
     assert!(matches!(
         err,
-        ResonateError::QueryLengthMismatch { got: 3, expected: 4 }
+        ResonateError::QueryLengthMismatch {
+            got: 3,
+            expected: 4
+        }
     ));
 }
 
@@ -113,7 +124,7 @@ fn t10_identical_references() {
     // The key requirement: query returns references for all matching indices
     assert!(!hits.is_empty());
     // All results should be "AAAA"
-    assert!(hits.iter().all(|h| *h == "AAAA".as_bytes().as_bstr()));
+    assert!(hits.iter().all(|(h, _d)| *h == "AAAA".as_bytes().as_bstr()));
 }
 
 // Test 11: Case-insensitive bases (a/c/g/t == A/C/G/T)
@@ -167,6 +178,10 @@ fn sequence_too_short_error() {
     let err = HammingResonator::with_max_dist(seqs, 2).unwrap_err();
     assert!(matches!(
         err,
-        ResonateError::SequenceTooShort { seq_len: 2, max_dist: 2, min: 3 }
+        ResonateError::SequenceTooShort {
+            seq_len: 2,
+            max_dist: 2,
+            min: 3
+        }
     ));
 }

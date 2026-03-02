@@ -1,6 +1,6 @@
-use crate::encode::{encode_nibble, hamming, hamming_nibble, EncodedSeq, NibbleSeq};
+use crate::encode::{hamming_distance, EncodedSeq};
 use crate::error::ResonateError;
-use crate::resonator::EncodedSeqs;
+use crate::encode::EncodedSeqs;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -69,11 +69,10 @@ impl PartitionIndex {
             .into_iter()
             .map(|idx| {
                 let slice = self.encoded.get_entry(idx);
-                (idx, hamming(enc, slice))
+                (idx, hamming_distance(enc, slice))
             })
             .collect();
-        candidates.retain(|(idx, dist)| *dist <= self.max_dist);
-        //hamming_nibble(&enc_nibble, &self.encoded_nibble[idx as usize]) <= self.max_dist
+        candidates.retain(|(_idx, dist)| *dist <= self.max_dist);
 
         candidates
     }
@@ -82,7 +81,7 @@ impl PartitionIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{encode::encode, resonator::validate_and_encode};
+    use crate::{encode::encode, encode::validate_and_encode};
     use bstr::{BString, ByteSlice};
 
     fn enc(s: &str) -> EncodedSeq {
@@ -90,8 +89,8 @@ mod tests {
     }
 
     fn build(seqs: &[&str], max_dist: u32) -> PartitionIndex {
-        let bstrSeqs: Vec<BString> = seqs.iter().map(|&s| BString::from(s)).collect();
-        let encoded: EncodedSeqs = validate_and_encode(&bstrSeqs, max_dist).unwrap();
+        let bstr_seqs: Vec<BString> = seqs.iter().map(|&s| BString::from(s)).collect();
+        let encoded: EncodedSeqs = validate_and_encode(&bstr_seqs, max_dist).unwrap();
         PartitionIndex::build(encoded, max_dist).unwrap()
     }
 

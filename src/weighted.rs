@@ -3,7 +3,7 @@ use bstr::{BStr, BString};
 use crate::encode::encode;
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
-use crate::resonator::{validate_and_encode, validate_and_encode_with_scores, EncodedSeqs};
+use crate::encode::validate_and_encode_with_scores;
 
 /// An index for finding the highest-scoring reference sequence within a given
 /// Hamming distance of a query sequence.

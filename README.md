@@ -25,7 +25,7 @@ fn main() -> Result<(), ResonateError> {
     let index = HammingResonator::with_max_dist(refs, 1)?;
 
     let mut hits: Vec<_> = index.query("AAAG".as_bytes().as_bstr())?
-        .into_iter().map(|h| h.to_str().unwrap()).collect();
+        .into_iter().map(|(h, _distance)| h.to_str().unwrap()).collect();
     hits.sort();
     // "AAAA" (1 mismatch at pos 3) and "AAAC" (1 mismatch at pos 3) are within distance 1.
     assert_eq!(hits, ["AAAA", "AAAC"]);
@@ -75,8 +75,8 @@ fn main() -> Result<(), ResonateError> {
         .iter().map(|&s| BString::from(s)).collect();
     let results = index.query_batch(&queries);
 
-    assert!(results[0].as_ref().unwrap().contains(&"AAAC".as_bytes().as_bstr()));
-    assert!(results[1].as_ref().unwrap().contains(&"TTTT".as_bytes().as_bstr()));
+    assert!(results[0].as_ref().unwrap().iter().map(|(seq, dist)| seq).any(|seq| seq == &"AAAC".as_bytes().as_bstr()));
+    assert!(results[1].as_ref().unwrap().iter().map(|(seq, dist)| seq).any(|seq| seq == &"TTTT".as_bytes().as_bstr()));
     Ok(())
 }
 ```
