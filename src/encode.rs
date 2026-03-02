@@ -116,20 +116,20 @@ impl EncodedSeqsAndScores {
 
 pub struct EncodedSeqsIter<'a> {
     arena: &'a [u8],
-    entry_len: &'a usize,
-    entry_size: &'a usize,
-    count: &'a usize,
+    entry_len: usize,
+    entry_size: usize,
+    count: usize,
     index: usize,
 }
 impl<'a> Iterator for EncodedSeqsIter<'a> {
     type Item = &'a [u8];
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= *self.count {
+        if self.index >= self.count {
             return None;
         }
-        let start = self.index * *self.entry_size;
-        let end = start + *self.entry_len;
+        let start = self.index * self.entry_size;
+        let end = start + self.entry_len;
         self.index += 1;
         Some(&self.arena[start..end])
     }
@@ -152,9 +152,9 @@ impl EncSeqs for EncodedSeqs {
     fn iter(&self) -> EncodedSeqsIter<'_> {
         EncodedSeqsIter {
             arena: &self.arena,
-            entry_len: &self.entry_len,
-            entry_size: &self.entry_len,
-            count: &self.count,
+            entry_len: self.entry_len,
+            entry_size: self.entry_len,
+            count: self.count,
             index: 0,
         }
     }
@@ -175,9 +175,9 @@ impl EncSeqs for EncodedSeqsAndScores {
     fn iter(&self) -> EncodedSeqsIter<'_> {
         EncodedSeqsIter {
             arena: &self.arena,
-            entry_len: &self.entry_len,
-            entry_size: &self.entry_size,
-            count: &self.count,
+            entry_len: self.entry_len,
+            entry_size: self.entry_size,
+            count: self.count,
             index: 0,
         }
     }

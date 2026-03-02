@@ -17,7 +17,6 @@ use crate::index::PartitionIndex;
 /// `HammingResonatorWeighted` is `Send + Sync`; the index is read-only after construction.
 #[derive(Debug)]
 pub struct HammingResonatorWeighted {
-    originals: Vec<BString>,
     index: PartitionIndex<EncodedSeqsAndScores>,
 }
 
@@ -27,12 +26,10 @@ impl HammingResonatorWeighted {
         let (bstrings, scores): (Vec<BString>, Vec<f32>) = seqs.into_iter().unzip();
         let encoded = EncodedSeqsAndScores::new(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
-        Ok(Self {
-            originals: bstrings,
-            index,
-        })
+        Ok(Self { index })
     }
-    /// Return indices and distance of all references within `max_dist` of `enc` (byte-per-base).
+    /// Return the index with the lowest distance, ties broken
+    /// by score, higher preferred
     fn query_indices_fast(
         index: &PartitionIndex<EncodedSeqsAndScores>,
         query: &BStr,
@@ -64,6 +61,7 @@ impl HammingResonatorWeighted {
 
         candidates.into_iter().last()
     }
+    // Alternative implementation, but quite a bit (tens-of-percents) slower
     // fn query_indices_slow(
     //     index: &PartitionIndex<EncodedSeqsAndScores>,
     //     query: &BStr,
@@ -103,25 +101,9 @@ impl HammingResonatorWeighted {
                 expected: self.index.seq_len,
             });
         }
-
-        // let indices = self.index.query_indices(query);
-        // // query_indices returns sorted indices, so the first occurrence of the
-        // // maximum score wins the tie-break (lowest original index).
-        // // followed by lowest index
-        // let best = indices.into_iter().reduce(|best, (idx, d, score)| {
-        //     if d < best.1 || (d == best.1 && score > best.2) {
-        //         (idx, d, score)
-        //     } else {
-        //         best
-        //     }
-        // });
-
         let best = Self::query_indices_fast(&self.index, query);
 
-        Ok(best.map(|(i, _d, _score)| {
-            let s: &BStr = self.originals[i as usize].as_ref();
-            s
-        }))
+        Ok(best.map(|(i, _d, _score)| BStr::new(self.index.encoded.get_entry(i as u32).0)))
     }
 }
 

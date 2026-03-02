@@ -1,7 +1,7 @@
 use bstr::{BStr, BString, ByteSlice};
 use rayon::prelude::*;
 
-use crate::encode::EncodedSeqs;
+use crate::encode::{EncSeqs, EncodedSeqs};
 use crate::error::ResonateError;
 use crate::index::PartitionIndex;
 
@@ -17,7 +17,6 @@ use crate::index::PartitionIndex;
 /// `HammingResonator` is `Send + Sync`; the index is read-only after construction.
 #[derive(Debug)]
 pub struct HammingResonator {
-    originals: Vec<BString>,
     index: PartitionIndex<EncodedSeqs>,
 }
 
@@ -27,12 +26,11 @@ impl HammingResonator {
         let encoded = EncodedSeqs::new(&seqs, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
-            originals: seqs,
             index,
         })
     }
 
-    /// Query the index and return all references within `max_dist`, and their distanc.
+    /// Query the index and return all references within `max_dist`, and their distance.
     pub fn query(&self, query: &BStr) -> Result<Vec<(&BStr, u32)>, ResonateError> {
         if query.len() != self.index.seq_len {
             return Err(ResonateError::QueryLengthMismatch {
@@ -40,11 +38,11 @@ impl HammingResonator {
                 expected: self.index.seq_len,
             });
         }
-        let query = BString::from(query.to_ascii_uppercase());
+        let query = BString::from(query);
         let indices = self.index.query_indices(query.as_bstr());
         Ok(indices
             .into_iter()
-            .map(|(i, d, _ignored_score)| (self.originals[i as usize].as_bstr(), d))
+            .map(|(i, d, _ignored_score)| (BStr::new(self.index.encoded.get_entry(i as u32).0), d))
             .collect())
     }
 

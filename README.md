@@ -4,18 +4,25 @@ Fast nearest-neighbors search over fixed-length byte sequences using Hamming dis
 
 For DNA usage.
 
-Build an index from a set of reference sequences, then query it to find all
-references within a given number of mismatches.  Two flavours are provided:
+Build an index / database from a set of reference sequences, then query it to find all
+references within a given number of mismatches.  
+
+Two variants are provided:
 
 - **`HammingResonator`** — returns every reference within `max_dist`.
 - **`HammingResonatorWeighted`** — returns the single best sequence within `max_dist`. 
   On distance ties, highest score wins. On score ties, lowest-index wins.
 
-Sequences are bytew strings. Comparisons are case sensitive.
+Sequences are byte strings. Comparisons are case sensitive.
 All sequences in one index must be the same length. Query must also have the same length.
 
 
+
+## Limitations
+
 Tests have only been performed up to `max_dist` = 3.
+
+Database size is at most 2^32 sequences.
 
 
 ## Quick start
@@ -33,7 +40,7 @@ fn main() -> Result<(), ResonateError> {
     let mut hits: Vec<_> = index.query("AAAG".as_bytes().as_bstr())?
         .into_iter().map(|(h, _distance)| h.to_str().unwrap()).collect();
     hits.sort();
-    // "AAAA" (1 mismatch at pos 3) and "AAAC" (1 mismatch at pos 3) are within distance 1.
+    // "AAAA" (1 mismatch at pos 3) and "AAAC" (0 mismatch) are within distance 1.
     assert_eq!(hits, ["AAAA", "AAAC"]);
     Ok(())
 }
@@ -47,17 +54,20 @@ use hamming_resonate::{HammingResonatorWeighted, ResonateError};
 
 fn main() -> Result<(), ResonateError> {
     let refs: Vec<(BString, f32)> = vec![
-//        (BString::from("AAAA"), 1.0),
         (BString::from("AAAT"), 9.0),
         (BString::from("AAAG"), 5.0),
     ];
 
     let index = HammingResonatorWeighted::with_max_dist(refs, 1)?;
 
-    // Both "AAAA" (d=0) and "AAAC" (d=1) are within distance 1 of "AAAA",
-    // but "AAAC" has a higher score so it wins.
+    // Both "AAAA" (d=0) and "AAAG" (d=1) are within distance 1 of "AAAA",
+    // but "AAAT" has a higher score so it wins.
     let best = index.query_best("AAAA".as_bytes().as_bstr())?;
     assert_eq!(best.unwrap(), "AAAT".as_bytes().as_bstr());
+
+    // AAAG is distance 0 from AAAG, so it is returned
+    let best = index.query_best("AAAG".as_bytes().as_bstr())?;
+    assert_eq!(best.unwrap(), "AAAG".as_bytes().as_bstr());
 
     Ok(())
 }

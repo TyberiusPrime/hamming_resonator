@@ -116,13 +116,17 @@ fn t09_query_best_distance_first() {
     }
 }
 
-// Test 9: query_best tie-break: lowest index wins
-// #[test]
-// fn t09_query_best_tiebreak_lowest_index() {
-//     let w = weighted(&[("AAAA", 5.0), ("AAAC", 5.0)], 1);
-//     let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-//     assert_eq!(hit, "AAAA".as_bytes().as_bstr());
-// }
+//Test 9: query_best tie-break: lowest index wins
+#[test]
+fn t09_query_best_tiebreak_lowest_index() {
+    let w = weighted(&[("AAAA", 5.0), ("AAAC", 5.0)], 1);
+    let hit = w.query_best("AAAG".as_bytes().as_bstr()).unwrap().unwrap();
+    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+
+    let w = weighted(&[("AAAC", 5.0), ("AAAA", 5.0)], 1);
+    let hit = w.query_best("AAAG".as_bytes().as_bstr()).unwrap().unwrap();
+    assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+}
 
 // Test 10: All references identical — single result returned
 #[test]
@@ -145,7 +149,7 @@ fn t11_case_insensitive() {
 
     let r2 = resonator(&["ACGT"], 1);
     let hits2 = r2.query("acgt".as_bytes().as_bstr()).unwrap();
-    assert_eq!(hits2.len(), 1);
+    assert_eq!(hits2.len(), 0);
 }
 
 // Test 12: query_batch results match serial query results

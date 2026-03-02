@@ -1,6 +1,6 @@
 use bstr::BStr;
 
-use crate::encode::{EncSeqs, hamming_distance};
+use crate::encode::{hamming_distance, EncSeqs};
 use crate::error::ResonateError;
 use std::collections::HashMap;
 
@@ -41,7 +41,6 @@ impl<T: EncSeqs> PartitionIndex<T> {
                     .or_default()
                     .push(idx as u32);
             }
-            //            encoded_nibble.push(encode_nibble(enc));
         }
         Ok(Self {
             encoded,
@@ -56,9 +55,13 @@ impl<T: EncSeqs> PartitionIndex<T> {
     pub(crate) fn query_indices(&self, query: &BStr) -> Vec<(u32, u32, T::Score)> {
         let mut candidates: Vec<_> = Vec::new();
         let max_hamming_dist = self.max_dist;
+        //let mut seen: HashSet<u32> = HashSet::new(); see below
         for (chunk_i, &(start, end)) in self.ranges.iter().enumerate() {
             if let Some(hits) = self.chunk_maps[chunk_i].get(&query[start..end]) {
                 for idx in hits.iter() {
+                    //if !seen.contains(idx) {
+                    //   seen.insert(*idx);
+                    //  Using a hashset is much slower (-73% throughput) in our benchmarks
                     if !candidates.iter().any(|(cidx, _, _)| *cidx == *idx) {
                         let (slice, score) = self.encoded.get_entry(*idx);
                         let dist = hamming_distance(query, slice);
@@ -67,14 +70,11 @@ impl<T: EncSeqs> PartitionIndex<T> {
                         }
                     }
                 }
-                //candidates.extend_from_slice(hits);
             }
         }
-    
+
         candidates
     }
-  
-
 }
 
 #[cfg(test)]
