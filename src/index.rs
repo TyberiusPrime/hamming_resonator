@@ -58,7 +58,7 @@ impl<T: EncSeqs> PartitionIndex<T> {
         let max_hamming_dist = self.max_dist;
         for (chunk_i, &(start, end)) in self.ranges.iter().enumerate() {
             if let Some(hits) = self.chunk_maps[chunk_i].get(&query[start..end]) {
-                for idx in hits.into_iter() {
+                for idx in hits.iter() {
                     if !candidates.iter().any(|(cidx, _, _)| *cidx == *idx) {
                         let (slice, score) = self.encoded.get_entry(*idx);
                         let dist = hamming_distance(query, slice);

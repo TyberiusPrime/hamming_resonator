@@ -60,7 +60,7 @@ fn bench_build(c: &mut Criterion) {
 }
 
 fn bench_query(c: &mut Criterion) {
-    let mut seqs_1m = gen_seqs(1_000_000, 16, 42);
+    let seqs_1m = gen_seqs(1_000_000, 16, 42);
     //seqs_1m.sort();  3.8% more throughput
     let queries = gen_seqs(10_000, 16, 99);
 

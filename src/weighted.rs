@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use bstr::{BStr, BString};
 
 use crate::encode::{hamming_distance, EncSeqs, EncodedSeqsAndScores};
@@ -44,7 +42,7 @@ impl HammingResonatorWeighted {
         let mut min_score = f32::MIN;
         for (chunk_i, &(start, end)) in index.ranges.iter().enumerate() {
             if let Some(hits) = index.chunk_maps[chunk_i].get(&query[start..end]) {
-                for idx in hits.into_iter() {
+                for idx in hits.iter() {
                     //hamming distance & comparison is so fast,
                     //we're better of not keeping track of every index we have seen
                     //if !candidates.iter().any(|(cidx, _, _)| *cidx == *idx)
