@@ -23,8 +23,8 @@ pub struct HammingResonatorWeighted {
 
 impl HammingResonatorWeighted {
     /// Build with explicit `max_dist`.
-    pub fn with_max_dist(seqs: Vec<(BString, f64)>, max_dist: u32) -> Result<Self, ResonateError> {
-        let (bstrings, scores): (Vec<BString>, Vec<f64>) = seqs.into_iter().unzip();
+    pub fn with_max_dist(seqs: Vec<(BString, f32)>, max_dist: u32) -> Result<Self, ResonateError> {
+        let (bstrings, scores): (Vec<BString>, Vec<f32>) = seqs.into_iter().unzip();
         let encoded = EncodedSeqsAndScores::new(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
@@ -70,8 +70,8 @@ mod tests {
 
     
 
-    fn weighted(seqs: &[(&str, f64)], max_dist: u32) -> HammingResonatorWeighted {
-        let v: Vec<(BString, f64)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
+    fn weighted(seqs: &[(&str, f32)], max_dist: u32) -> HammingResonatorWeighted {
+        let v: Vec<(BString, f32)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
         HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
     }
 

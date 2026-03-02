@@ -21,7 +21,7 @@ fn gen_seqs(n: usize, len: usize, seed: u64) -> Vec<BString> {
 }
 
 /// Same as `gen_seqs` but pairs each sequence with a score in (0.0, 1.0].
-fn gen_seqs_weighted(n: usize, len: usize, seed: u64) -> Vec<(BString, f64)> {
+fn gen_seqs_weighted(n: usize, len: usize, seed: u64) -> Vec<(BString, f32)> {
     const BASES: [u8; 4] = [b'A', b'C', b'G', b'T'];
     let mut state = seed;
     (0..n)
@@ -34,7 +34,7 @@ fn gen_seqs_weighted(n: usize, len: usize, seed: u64) -> Vec<(BString, f64)> {
                 .collect();
             // Derive a score in (0.0, 1.0] from the same LCG state.
             state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
-            let score = ((state >> 11) as f64) / ((1u64 << 53) as f64);
+            let score = ((state >> 11) as f32) / ((1u64 << 53) as f32);
             (BString::from(seq), score)
         })
         .collect()

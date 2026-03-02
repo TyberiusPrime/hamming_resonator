@@ -72,7 +72,7 @@ impl EncodedSeqsAndScores {
     /// Returns encoded sequences ready for `PartitionIndex::build`.
     pub(crate) fn new(
         seqs: &[BString],
-        scores: &[f64],
+        scores: &[f32],
         max_dist: u32,
     ) -> Result<Self, ResonateError> {
         if seqs.is_empty() {
@@ -92,7 +92,7 @@ impl EncodedSeqsAndScores {
             return Err(ResonateError::LengthMismatch);
         }
 
-        let bytes_per_entry = expected_len + 8; //for f64
+        let bytes_per_entry = expected_len + 4; //for f32
 
         let total_bytes = seqs.len() * bytes_per_entry;
         let mut arena = Vec::with_capacity(total_bytes);
@@ -105,7 +105,7 @@ impl EncodedSeqsAndScores {
             let start = i * bytes_per_entry;
             let end = start + expected_len;
             arena[start..end].copy_from_slice(seq);
-            arena[end..end + 8].copy_from_slice(&score.to_le_bytes());
+            arena[end..end + 4].copy_from_slice(&score.to_le_bytes());
         }
         Ok(EncodedSeqsAndScores {
             arena,
@@ -169,7 +169,7 @@ impl EncSeqs for EncodedSeqs {
 }
 
 impl EncSeqs for EncodedSeqsAndScores {
-    type Score = f64;
+    type Score = f32;
     fn get_entry_len(&self) -> usize {
         self.entry_len
     }
@@ -186,7 +186,7 @@ impl EncSeqs for EncodedSeqsAndScores {
     fn get_entry(&self, idx: u32) -> (&[u8], Self::Score) {
         let start = (idx as usize) * self.entry_size;
         let end = start + self.entry_len;
-        let score = f64::from_le_bytes(self.arena[end..end + 8].try_into().unwrap());
+        let score = f32::from_le_bytes(self.arena[end..end + 4].try_into().unwrap());
         (&self.arena[start..end], score)
     }
 }

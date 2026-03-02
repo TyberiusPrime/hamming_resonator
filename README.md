@@ -47,7 +47,7 @@ use bstr::{BString, ByteSlice};
 use hamming_resonate::{HammingResonatorWeighted, ResonateError};
 
 fn main() -> Result<(), ResonateError> {
-    let refs: Vec<(BString, f64)> = vec![
+    let refs: Vec<(BString, f32)> = vec![
 //        (BString::from("AAAA"), 1.0),
         (BString::from("AAAT"), 9.0),
         (BString::from("AAAG"), 5.0),
