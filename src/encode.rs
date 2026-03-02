@@ -47,8 +47,7 @@ impl EncodedSeqs {
         }
 
         let total_bytes = seqs.len() * expected_len;
-        let mut arena = Vec::with_capacity(total_bytes);
-        arena.resize(total_bytes, 0);
+        let mut arena = vec![0; total_bytes];
 
         for (i, seq) in seqs.iter().enumerate() {
             if seq.len() != expected_len {
@@ -95,8 +94,7 @@ impl EncodedSeqsAndScores {
         let bytes_per_entry = expected_len + 4; //for f32
 
         let total_bytes = seqs.len() * bytes_per_entry;
-        let mut arena = Vec::with_capacity(total_bytes);
-        arena.resize(total_bytes, 0);
+        let mut arena = vec![0; total_bytes];
 
         for (i, (seq, score)) in seqs.iter().zip(scores.iter()).enumerate() {
             if seq.len() != expected_len {
@@ -138,7 +136,7 @@ impl<'a> Iterator for EncodedSeqsIter<'a> {
 }
 
 pub trait EncSeqs {
-    type Score;
+    type Score: PartialOrd;
 
     fn get_entry_len(&self) -> usize;
     fn iter(&self) -> EncodedSeqsIter<'_>;

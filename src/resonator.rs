@@ -123,8 +123,8 @@ mod tests {
         let serial: Vec<_> = queries.iter().map(|q| r.query(q.as_ref())).collect();
         assert_eq!(batch.len(), serial.len());
         for (b, s) in batch.iter().zip(serial.iter()) {
-            let mut bv: Vec<_> = b.as_ref().unwrap().iter().copied().collect();
-            let mut sv: Vec<_> = s.as_ref().unwrap().iter().copied().collect();
+            let mut bv: Vec<_> = b.as_ref().unwrap().to_vec();
+            let mut sv: Vec<_> = s.as_ref().unwrap().to_vec();
             bv.sort();
             sv.sort();
             assert_eq!(bv, sv);

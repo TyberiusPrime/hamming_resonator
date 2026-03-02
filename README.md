@@ -8,9 +8,8 @@ Build an index from a set of reference sequences, then query it to find all
 references within a given number of mismatches.  Two flavours are provided:
 
 - **`HammingResonator`** — returns every reference within `max_dist`.
-- **`HammingResonatorWeighted`** — returns the single best sequence
-within `max_dist`. On distance ties, highest score wins.
-On score ties,  lowest-index (=alphabetically first) wins.
+- **`HammingResonatorWeighted`** — returns the single best sequence within `max_dist`. 
+  On distance ties, highest score wins. On score ties, lowest-index wins.
 
 Sequences are bytew strings. Comparisons are case sensitive.
 All sequences in one index must be the same length. Query must also have the same length.

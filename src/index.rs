@@ -1,17 +1,17 @@
 use bstr::BStr;
 
-use crate::encode::{hamming_distance, EncSeqs};
+use crate::encode::{EncSeqs, hamming_distance};
 use crate::error::ResonateError;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub(crate) struct PartitionIndex<T: EncSeqs> {
     /// Full sequences (and possibly scores) in form for Hamming distance computation.
-    encoded: T,
+    pub(crate) encoded: T,
     /// Keys stay byte-per-base so chunk boundaries map cleanly to slice ranges.
-    chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
+    pub(crate) chunk_maps: Vec<HashMap<Vec<u8>, Vec<u32>>>,
     /// Byte-per-base coordinate range (start, end) for each chunk.
-    ranges: Vec<(usize, usize)>,
+    pub(crate) ranges: Vec<(usize, usize)>,
     pub(crate) seq_len: usize,
     pub(crate) max_dist: u32,
 }
@@ -54,28 +54,27 @@ impl<T: EncSeqs> PartitionIndex<T> {
 
     /// Return indices and distance of all references within `max_dist` of `enc` (byte-per-base).
     pub(crate) fn query_indices(&self, query: &BStr) -> Vec<(u32, u32, T::Score)> {
-
-        let mut candidates: Vec<u32> = Vec::new();
+        let mut candidates: Vec<_> = Vec::new();
+        let max_hamming_dist = self.max_dist;
         for (chunk_i, &(start, end)) in self.ranges.iter().enumerate() {
             if let Some(hits) = self.chunk_maps[chunk_i].get(&query[start..end]) {
-                candidates.extend_from_slice(hits);
+                for idx in hits.into_iter() {
+                    if !candidates.iter().any(|(cidx, _, _)| *cidx == *idx) {
+                        let (slice, score) = self.encoded.get_entry(*idx);
+                        let dist = hamming_distance(query, slice);
+                        if dist <= max_hamming_dist {
+                            candidates.push((*idx, dist, score));
+                        }
+                    }
+                }
+                //candidates.extend_from_slice(hits);
             }
         }
-
-        candidates.sort_unstable();
-        candidates.dedup();
-
-        let mut candidates: Vec<_> = candidates
-            .into_iter()
-            .map(|idx| {
-                let (slice, score) = self.encoded.get_entry(idx);
-                (idx, hamming_distance(query, slice), score)
-            })
-            .collect();
-        candidates.retain(|(_idx, dist, _score)| *dist <= self.max_dist);
-
+    
         candidates
     }
+  
+
 }
 
 #[cfg(test)]
