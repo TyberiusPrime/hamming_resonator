@@ -29,6 +29,7 @@ impl HammingResonatorWeighted {
         Ok(Self { index })
     }
 
+    /// Retrieve the sequences
     pub fn to_seqs(&self) -> Vec<BString> {
         (0..self.index.encoded.count)
             .map(|i| {
@@ -38,6 +39,7 @@ impl HammingResonatorWeighted {
             .collect()
     }
 
+    /// Retrieve the sequences and scores.
     pub fn to_seqs_and_scores(&self) -> Vec<(BString, f32)> {
         (0..self.index.encoded.count)
             .map(|i| {
@@ -129,7 +131,7 @@ impl HammingResonatorWeighted {
     // }
 
     /// Return the highest-scoring reference within `max_dist`, or `None` if no match is found.
-    pub fn query_best(&self, query: &BStr) -> Result<Option<&BStr>, ResonateError> {
+    pub fn query_best(&self, query: &BStr) -> Result<Option<(&BStr, u32, f32)>, ResonateError> {
         if query.len() != self.index.seq_len {
             return Err(ResonateError::QueryLengthMismatch {
                 got: query.len(),
@@ -138,7 +140,7 @@ impl HammingResonatorWeighted {
         }
         let best = Self::query_indices_fast(&self.index, query);
 
-        Ok(best.map(|(i, _d, _score)| BStr::new(self.index.encoded.get_entry(i).0)))
+        Ok(best.map(|(i, d, score)| (BStr::new(self.index.encoded.get_entry(i).0), d, score)))
     }
 }
 
