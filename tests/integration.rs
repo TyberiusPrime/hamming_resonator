@@ -7,12 +7,12 @@ fn b(s: &str) -> BString {
 
 fn resonator(seqs: &[&str], max_dist: u32) -> HammingResonator {
     let v: Vec<BString> = seqs.iter().map(|&s| b(s)).collect();
-    HammingResonator::with_max_dist(v, max_dist).unwrap()
+    HammingResonator::new(v, max_dist).unwrap()
 }
 
 fn weighted(seqs: &[(&str, f32)], max_dist: u32) -> HammingResonatorWeighted {
     let v: Vec<(BString, f32)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
-    HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
+    HammingResonatorWeighted::new(v, max_dist).unwrap()
 }
 
 fn hit_strings(hits: Vec<(&BStr, u32)>) -> Vec<String> {
@@ -173,14 +173,14 @@ fn t12_query_batch_matches_serial() {
 // Validation errors
 #[test]
 fn empty_input_error() {
-    let err = HammingResonator::with_max_dist(vec![], 1).unwrap_err();
+    let err = HammingResonator::new(vec![], 1).unwrap_err();
     assert!(matches!(err, ResonateError::EmptyInput));
 }
 
 #[test]
 fn inconsistent_length_error() {
     let seqs = vec![b("ACGT"), b("ACG")];
-    let err = HammingResonator::with_max_dist(seqs, 1).unwrap_err();
+    let err = HammingResonator::new(seqs, 1).unwrap_err();
     assert!(matches!(err, ResonateError::InconsistentLength(4, 3)));
 }
 
@@ -188,7 +188,7 @@ fn inconsistent_length_error() {
 fn sequence_too_short_error() {
     // seq_len=2, max_dist=2 requires at least 3 bases
     let seqs = vec![b("AC")];
-    let err = HammingResonator::with_max_dist(seqs, 2).unwrap_err();
+    let err = HammingResonator::new(seqs, 2).unwrap_err();
     assert!(matches!(
         err,
         ResonateError::SequenceTooShort {

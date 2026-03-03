@@ -9,14 +9,14 @@ pub(crate) fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
 }
 
 /// Sequences stored in an Arena
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EncodedSeqs {
     pub arena: Vec<u8>,
     pub entry_len: usize, //how many bytes of sequence are there. Also entry size
     pub count: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EncodedSeqsAndScores {
     pub arena: Vec<u8>,
     pub entry_len: usize,  //how many bytes of sequence are there

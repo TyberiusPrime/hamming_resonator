@@ -1,4 +1,4 @@
-use bstr::{BStr, BString};
+use bstr::{BStr, BString, ByteSlice};
 
 use crate::encode::{hamming_distance, EncSeqs, EncodedSeqsAndScores};
 use crate::error::ResonateError;
@@ -15,19 +15,54 @@ use crate::index::PartitionIndex;
 /// # Thread safety
 ///
 /// `HammingResonatorWeighted` is `Send + Sync`; the index is read-only after construction.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HammingResonatorWeighted {
     index: PartitionIndex<EncodedSeqsAndScores>,
 }
 
 impl HammingResonatorWeighted {
     /// Build with explicit `max_dist`.
-    pub fn with_max_dist(seqs: Vec<(BString, f32)>, max_dist: u32) -> Result<Self, ResonateError> {
+    pub fn new(seqs: Vec<(BString, f32)>, max_dist: u32) -> Result<Self, ResonateError> {
         let (bstrings, scores): (Vec<BString>, Vec<f32>) = seqs.into_iter().unzip();
         let encoded = EncodedSeqsAndScores::new(&bstrings, &scores, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self { index })
     }
+
+    pub fn to_seqs(&self) -> Vec<BString> {
+        (0..self.index.encoded.count)
+            .map(|i| {
+                let hit = self.index.encoded.get_entry(i as u32);
+                BString::from(hit.0)
+            })
+            .collect()
+    }
+
+    pub fn to_seqs_and_scores(&self) -> Vec<(BString, f32)> {
+        (0..self.index.encoded.count)
+            .map(|i| {
+                let hit = self.index.encoded.get_entry(i as u32);
+                (BString::from(hit.0), hit.1)
+            })
+            .collect()
+    }
+
+    /// Query the index and return all references within `max_dist`, and their distance.
+    pub fn query(&self, query: &BStr) -> Result<Vec<(&BStr, u32, f32)>, ResonateError> {
+        if query.len() != self.index.seq_len {
+            return Err(ResonateError::QueryLengthMismatch {
+                got: query.len(),
+                expected: self.index.seq_len,
+            });
+        }
+        let query = BString::from(query);
+        let indices = self.index.query_indices(query.as_bstr());
+        Ok(indices
+            .into_iter()
+            .map(|(i, d, score)| (BStr::new(self.index.encoded.get_entry(i).0), d, score))
+            .collect())
+    }
+
     /// Return the index with the lowest distance, ties broken
     /// by score, higher preferred
     fn query_indices_fast(
@@ -114,7 +149,36 @@ mod tests {
 
     fn weighted(seqs: &[(&str, f32)], max_dist: u32) -> HammingResonatorWeighted {
         let v: Vec<(BString, f32)> = seqs.iter().map(|&(s, w)| (BString::from(s), w)).collect();
-        HammingResonatorWeighted::with_max_dist(v, max_dist).unwrap()
+        HammingResonatorWeighted::new(v, max_dist).unwrap()
+    }
+    #[test]
+    fn test_query_all() {
+        let r = weighted(&[("AAAA", 1.0), ("AAAC", 5.0), ("AACC", 10.0)], 1);
+        // AACC is d=2 from AAAA, excluded; AAAC is d=1 and highest among candidates
+        let hits = r.query("AAAA".as_bytes().as_bstr()).unwrap();
+        assert_eq!(hits.len(), 2);
+        assert_eq!(hits[0].0, "AAAA".as_bytes().as_bstr());
+        assert_eq!(hits[0].1, 0);
+        assert_eq!(hits[0].2, 1.0);
+        assert_eq!(hits[1].0, "AAAC".as_bytes().as_bstr());
+        assert_eq!(hits[1].1, 1);
+        assert_eq!(hits[1].2, 5.0);
+        assert_eq!(
+            r.to_seqs(),
+            vec![
+                "AAAA".as_bytes().as_bstr(),
+                "AAAC".as_bytes().as_bstr(),
+                "AACC".as_bytes().as_bstr()
+            ]
+        );
+        assert_eq!(
+            r.to_seqs_and_scores(),
+            vec![
+                ("AAAA".into(), 1.0),
+                ("AAAC".into(), 5.0),
+                ("AACC".into(), 10.0)
+            ]
+        );
     }
 
     #[test]

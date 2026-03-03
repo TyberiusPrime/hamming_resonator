@@ -46,7 +46,7 @@ fn main() -> Result<(), ResonateError> {
     let refs: Vec<BString> = ["AAAA", "AAAC", "TTTT", "CCCC"]
         .iter().map(|&s| BString::from(s)).collect();
 
-    let index = HammingResonator::with_max_dist(refs, 1)?;
+    let index = HammingResonator::new(refs, 1)?;
 
     let mut hits: Vec<_> = index.query("AAAG".as_bytes().as_bstr())?
         .into_iter().map(|(h, _distance)| h.to_str().unwrap()).collect();
@@ -69,7 +69,7 @@ fn main() -> Result<(), ResonateError> {
         (BString::from("AAAG"), 5.0),
     ];
 
-    let index = HammingResonatorWeighted::with_max_dist(refs, 1)?;
+    let index = HammingResonatorWeighted::new(refs, 1)?;
 
     // Both "AAAA" (d=0) and "AAAG" (d=1) are within distance 1 of "AAAA",
     // but "AAAT" has a higher score so it wins.
@@ -96,7 +96,7 @@ use hamming_resonate::{HammingResonator, ResonateError};
 fn main() -> Result<(), ResonateError> {
     let refs: Vec<BString> = ["AAAA", "AAAC", "TTTT"]
         .iter().map(|&s| BString::from(s)).collect();
-    let index = HammingResonator::with_max_dist(refs, 1)?;
+    let index = HammingResonator::new(refs, 1)?;
 
     let queries: Vec<BString> = ["AAAA", "TTTT"]
         .iter().map(|&s| BString::from(s)).collect();
@@ -121,7 +121,7 @@ But since it increases the build time substantially, it's not on by default.
 
 | Method | Description |
 |---|---|
-| `with_max_dist(seqs, max_dist)` | Build the index. |
+| `new(seqs, max_dist)` | Build the index. |
 | `query(query)` | All references within `max_dist` mismatches, in arbitrary order. |
 | `query_batch(queries)` | Parallel version of `query` over a slice of queries. |
 
@@ -129,7 +129,7 @@ But since it increases the build time substantially, it's not on by default.
 
 | Method | Description |
 |---|---|
-| `with_max_dist(seqs, max_dist)` | Build the index from `(sequence, score)` pairs. |
+| `new(seqs, max_dist)` | Build the index from `(sequence, score)` pairs. |
 | `query_best(query)` | Highest-scoring reference within `max_dist`, or `None`. Ties broken by lowest original index. |
 
 ### Errors

@@ -22,12 +22,22 @@ pub struct HammingResonator {
 
 impl HammingResonator {
     /// Build with explicit `max_dist`.
-    pub fn with_max_dist(seqs: Vec<BString>, max_dist: u32) -> Result<Self, ResonateError> {
+    pub fn new(seqs: Vec<BString>, max_dist: u32) -> Result<Self, ResonateError> {
         let encoded = EncodedSeqs::new(&seqs, max_dist)?;
         let index = PartitionIndex::build(encoded, max_dist)?;
         Ok(Self {
             index,
         })
+    }
+
+    /// Retrieve the sequences
+    pub fn to_seqs(&self) -> Vec<BString> {
+        (0..self.index.encoded.count)
+            .map(|i| {
+                let hit = self.index.encoded.get_entry(i as u32);
+                BString::from(hit.0)
+            })
+            .collect()
     }
 
     /// Query the index and return all references within `max_dist`, and their distance.
@@ -67,7 +77,7 @@ mod tests {
 
     fn resonator(seqs: &[&str], max_dist: u32) -> HammingResonator {
         let v: Vec<BString> = seqs.iter().map(|&s| bstr(s)).collect();
-        HammingResonator::with_max_dist(v, max_dist).unwrap()
+        HammingResonator::new(v, max_dist).unwrap()
     }
 
     #[test]
@@ -77,6 +87,7 @@ mod tests {
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].0, "ACGT".as_bytes().as_bstr());
         assert_eq!(hits[0].1, 0);
+        assert_eq!(r.to_seqs(), vec!["ACGT".as_bytes().as_bstr(), "TTTT".as_bytes().as_bstr()]);
     }
 
     #[test]

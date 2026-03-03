@@ -4,7 +4,7 @@ use crate::encode::{hamming_distance, EncSeqs};
 use crate::error::ResonateError;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct PartitionIndex<T: EncSeqs> {
     /// Full sequences (and possibly scores) in form for Hamming distance computation.
     pub(crate) encoded: T,

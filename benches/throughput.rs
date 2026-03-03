@@ -51,7 +51,7 @@ fn bench_build(c: &mut Criterion) {
             &max_dist,
             |b, &d| {
                 b.iter(|| {
-                    HammingResonator::with_max_dist(seqs_1m.clone(), d).unwrap()
+                    HammingResonator::new(seqs_1m.clone(), d).unwrap()
                 });
             },
         );
@@ -68,7 +68,7 @@ fn bench_query(c: &mut Criterion) {
     group.throughput(Throughput::Elements(10_000));
 
     for max_dist in [1u32, 2, 3] {
-        let resonator = HammingResonator::with_max_dist(seqs_1m.clone(), max_dist).unwrap();
+        let resonator = HammingResonator::new(seqs_1m.clone(), max_dist).unwrap();
 
         group.bench_with_input(
             BenchmarkId::new("serial_10k", max_dist),
@@ -104,7 +104,7 @@ fn bench_build_weighted(c: &mut Criterion) {
             &max_dist,
             |b, &d| {
                 b.iter(|| {
-                    HammingResonatorWeighted::with_max_dist(seqs_1m.clone(), d).unwrap()
+                    HammingResonatorWeighted::new(seqs_1m.clone(), d).unwrap()
                 });
             },
         );
@@ -121,7 +121,7 @@ fn bench_query_weighted(c: &mut Criterion) {
 
     for max_dist in [1u32, 2, 3] {
         let resonator =
-            HammingResonatorWeighted::with_max_dist(seqs_1m.clone(), max_dist).unwrap();
+            HammingResonatorWeighted::new(seqs_1m.clone(), max_dist).unwrap();
 
         group.bench_with_input(
             BenchmarkId::new("serial_10k", max_dist),
