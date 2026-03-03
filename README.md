@@ -74,11 +74,13 @@ fn main() -> Result<(), ResonateError> {
     // Both "AAAA" (d=0) and "AAAG" (d=1) are within distance 1 of "AAAA",
     // but "AAAT" has a higher score so it wins.
     let best = index.query_best("AAAA".as_bytes().as_bstr())?;
-    assert_eq!(best.unwrap(), "AAAT".as_bytes().as_bstr());
+    assert_eq!(best.unwrap().0, "AAAT".as_bytes().as_bstr()); //seq
+    assert_eq!(best.unwrap().1, 1); //distance
+    assert_eq!(best.unwrap().2, 9.0); //score
 
     // AAAG is distance 0 from AAAG, so it is returned
     let best = index.query_best("AAAG".as_bytes().as_bstr())?;
-    assert_eq!(best.unwrap(), "AAAG".as_bytes().as_bstr());
+    assert_eq!(best.unwrap().0, "AAAG".as_bytes().as_bstr());
 
     Ok(())
 }

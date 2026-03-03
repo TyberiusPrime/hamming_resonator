@@ -75,7 +75,7 @@ fn t08_query_best_distance_first() {
     // AAAC is d=1 (score 5.0), AAAA is d=0 (score 1.0); best should be AAAA
     let w = weighted(&[("AAAA", 1.0), ("AAAC", 5.0)], 1);
     let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+    assert_eq!(hit.0, "AAAA".as_bytes().as_bstr());
 
     for i in b' '..255 {
         if i == b'A' {
@@ -84,7 +84,7 @@ fn t08_query_best_distance_first() {
         let mut query = BString::from("AAA");
         query.push(i);
         let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
-        assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+        assert_eq!(hit.0, "AAAC".as_bytes().as_bstr());
     }
 }
 //
@@ -94,7 +94,7 @@ fn t09_query_best_distance_first() {
     // AAAC is d=1 (score 5.0), AAAA is d=0 (score 1.0); best should be AAAA
     let w = weighted(&[("AAAA", 1.0), ("AAAC", 5.0), ("TAAA", 6.0)], 2);
     let hit = w.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+    assert_eq!(hit.0, "AAAA".as_bytes().as_bstr());
 
     for i in b' '..255 {
         if i == b'A' {
@@ -103,7 +103,7 @@ fn t09_query_best_distance_first() {
         let mut query = BString::from("AAA");
         query.push(i);
         let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
-        assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+        assert_eq!(hit.0, "AAAC".as_bytes().as_bstr());
     }
     for i in b' '..255 {
         if i == b'A' {
@@ -112,7 +112,7 @@ fn t09_query_best_distance_first() {
         let mut query = BString::from("TAA");
         query.push(i);
         let hit = w.query_best(query.as_bstr()).unwrap().unwrap();
-        assert_eq!(hit, "TAAA".as_bytes().as_bstr());
+        assert_eq!(hit.0, "TAAA".as_bytes().as_bstr());
     }
 }
 
@@ -121,11 +121,11 @@ fn t09_query_best_distance_first() {
 fn t09_query_best_tiebreak_lowest_index() {
     let w = weighted(&[("AAAA", 5.0), ("AAAC", 5.0)], 1);
     let hit = w.query_best("AAAG".as_bytes().as_bstr()).unwrap().unwrap();
-    assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+    assert_eq!(hit.0, "AAAA".as_bytes().as_bstr());
 
     let w = weighted(&[("AAAC", 5.0), ("AAAA", 5.0)], 1);
     let hit = w.query_best("AAAG".as_bytes().as_bstr()).unwrap().unwrap();
-    assert_eq!(hit, "AAAC".as_bytes().as_bstr());
+    assert_eq!(hit.0, "AAAC".as_bytes().as_bstr());
 }
 
 // Test 10: All references identical — single result returned

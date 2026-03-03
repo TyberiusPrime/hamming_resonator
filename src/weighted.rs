@@ -188,7 +188,7 @@ mod tests {
         let r = weighted(&[("AAAA", 1.0), ("AAAC", 5.0), ("AACC", 10.0)], 1);
         // AACC is d=2 from AAAA, excluded; AAAC is d=1 and highest among candidates
         let hit = r.query_best("AAAA".as_bytes().as_bstr()).unwrap().unwrap();
-        assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+        assert_eq!(hit.0, "AAAA".as_bytes().as_bstr());
     }
 
     #[test]
@@ -199,7 +199,7 @@ mod tests {
             .expect("query failed")
             .expect("No result");
         // Both have score 5.0; index 0 wins
-        assert_eq!(hit, "AAAA".as_bytes().as_bstr());
+        assert_eq!(hit.0, "AAAA".as_bytes().as_bstr());
     }
 
     #[test]
